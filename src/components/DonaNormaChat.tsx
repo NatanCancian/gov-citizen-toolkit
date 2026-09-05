@@ -22,17 +22,21 @@ export const INITIAL_MESSAGES: ChatMessage[] = [
 const MOCK_REPLY =
   "Boa pergunta! Com base na Lei 14.133/2021 e nos normativos municipais, recomendo registrar a justificativa da contratação no DFD e vincular o item ao código CATMAT correspondente. Posso detalhar o próximo documento quando quiser.";
 
+export type PendingAsk = { key: number; text: string };
+
 type Props = {
   messages: ChatMessage[];
   onChange: (updater: (prev: ChatMessage[]) => ChatMessage[]) => void;
   onReset: () => void;
+  pendingAsk?: PendingAsk | null;
 };
 
-export function DonaNormaChat({ messages, onChange, onReset }: Props) {
+export function DonaNormaChat({ messages, onChange, onReset, pendingAsk }: Props) {
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastAsk = useRef<number | null>(null);
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
@@ -40,13 +44,10 @@ export function DonaNormaChat({ messages, onChange, onReset }: Props) {
 
   useEffect(() => () => (timer.current ? clearTimeout(timer.current) : undefined), []);
 
-  const send = (e: React.FormEvent) => {
-    e.preventDefault();
-    const text = input.trim();
-    if (!text || typing) return;
+  const ask = (text: string) => {
     onChange((prev) => [...prev, { id: `u-${Date.now()}`, role: "user", content: text }]);
-    setInput("");
     setTyping(true);
+    if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
       onChange((prev) => [
         ...prev,
@@ -54,6 +55,21 @@ export function DonaNormaChat({ messages, onChange, onReset }: Props) {
       ]);
       setTyping(false);
     }, 2000);
+  };
+
+  useEffect(() => {
+    if (!pendingAsk || lastAsk.current === pendingAsk.key) return;
+    lastAsk.current = pendingAsk.key;
+    ask(pendingAsk.text);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingAsk]);
+
+  const send = (e: React.FormEvent) => {
+    e.preventDefault();
+    const text = input.trim();
+    if (!text || typing) return;
+    setInput("");
+    ask(text);
   };
 
   return (
