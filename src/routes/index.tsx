@@ -195,7 +195,6 @@ function Index() {
             messages={messages}
             onChange={setMessages}
             onReset={resetChat}
-            pendingAsk={pendingAsk}
           />
             </div>
           </div>
