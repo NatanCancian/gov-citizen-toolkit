@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Bot, Minus, Send, Trash2 } from "lucide-react";
+import { Bot, Minus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 export type ChatMessage = {
@@ -15,14 +14,14 @@ export const INITIAL_MESSAGES: ChatMessage[] = [
     id: "welcome",
     role: "assistant",
     content:
-      "Olá! Sou a DonaNorma, sua assistente especialista em compras públicas. Posso ajudar a consultar o CATMAT ou estruturar seu Estudo Técnico Preliminar. Como posso auxiliar nesta fase?",
+      "Olá! Sou a Dona Norma, sua assistente especialista em compras públicas. Posso ajudar a consultar o CATMAT ou estruturar seu Estudo Técnico Preliminar. Como posso auxiliar nesta fase?",
   },
 ];
 
 const MOCK_REPLY =
   "Boa pergunta! Com base na Lei 14.133/2021 e nos normativos municipais, recomendo registrar a justificativa da contratação no DFD e vincular o item ao código CATMAT correspondente. Posso detalhar o próximo documento quando quiser.";
 
-export type PendingAsk = { key: number; text: string };
+export type PendingAsk = { key: number; text: string; reply?: string };
 
 type Props = {
   messages: ChatMessage[];
@@ -33,54 +32,49 @@ type Props = {
 };
 
 export function DonaNormaChat({ messages, onChange, onReset, pendingAsk, onMinimize }: Props) {
-  const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastAsk = useRef<number | null>(null);
+  const replyText = useRef<string>(MOCK_REPLY);
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, typing]);
 
-  useEffect(() => () => (timer.current ? clearTimeout(timer.current) : undefined), []);
-
-  const ask = (text: string) => {
+  const ask = (text: string, reply: string) => {
+    replyText.current = reply;
     onChange((prev) => [...prev, { id: `u-${Date.now()}`, role: "user", content: text }]);
     setTyping(true);
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      onChange((prev) => [
-        ...prev,
-        { id: `a-${Date.now()}`, role: "assistant", content: MOCK_REPLY },
-      ]);
-      setTyping(false);
-    }, 2000);
   };
 
   useEffect(() => {
     if (!pendingAsk || lastAsk.current === pendingAsk.key) return;
     lastAsk.current = pendingAsk.key;
-    ask(pendingAsk.text);
+    ask(pendingAsk.text, pendingAsk.reply ?? MOCK_REPLY);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingAsk]);
 
-  const send = (e: React.FormEvent) => {
-    e.preventDefault();
-    const text = input.trim();
-    if (!text || typing) return;
-    setInput("");
-    ask(text);
-  };
+  useEffect(() => {
+    if (!typing) return;
+    const t = setTimeout(() => {
+      onChange((prev) => [
+        ...prev,
+        { id: `a-${Date.now()}`, role: "assistant", content: replyText.current },
+      ]);
+      setTyping(false);
+    }, 3000 + Math.floor(Math.random() * 2000));
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [typing]);
 
   return (
-    <section aria-label="Assistente virtual DonaNorma" className="flex h-full flex-col bg-card">
+    <section aria-label="Assistente virtual Dona Norma" className="flex h-full flex-col bg-card">
       <header className="flex items-center gap-3 border-b bg-primary px-4 py-3 text-primary-foreground">
         <span className="flex size-9 items-center justify-center rounded-full bg-primary-foreground/15">
           <Bot aria-hidden="true" className="size-5" />
         </span>
         <div className="min-w-0">
-          <h2 className="truncate text-sm font-semibold">DonaNorma - Assistente Virtual</h2>
+          <h2 className="truncate text-sm font-semibold">Dona Norma - Assistente Virtual</h2>
           <p className="truncate text-xs text-primary-foreground/75">
             Especialista em licitações e contratos
           </p>
@@ -102,7 +96,7 @@ export function DonaNormaChat({ messages, onChange, onReset, pendingAsk, onMinim
               variant="ghost"
               size="icon"
               onClick={onMinimize}
-              aria-label="Ocultar DonaNorma"
+              aria-label="Ocultar Dona Norma"
               className="text-primary-foreground hover:bg-primary-foreground/15 hover:text-primary-foreground"
             >
               <Minus aria-hidden="true" className="size-4" />
@@ -131,7 +125,7 @@ export function DonaNormaChat({ messages, onChange, onReset, pendingAsk, onMinim
                   : "bg-muted text-foreground",
               )}
             >
-              <span className="sr-only">{m.role === "user" ? "Você: " : "DonaNorma: "}</span>
+              <span className="sr-only">{m.role === "user" ? "Você: " : "Dona Norma: "}</span>
               {m.content}
             </p>
           </div>
@@ -140,7 +134,7 @@ export function DonaNormaChat({ messages, onChange, onReset, pendingAsk, onMinim
           <div className="flex justify-start">
             <span
               className="flex items-center gap-1 rounded-lg bg-muted px-3 py-3"
-              aria-label="DonaNorma está digitando"
+              aria-label="Dona Norma está digitando"
             >
               {[0, 150, 300].map((d) => (
                 <span
@@ -153,22 +147,6 @@ export function DonaNormaChat({ messages, onChange, onReset, pendingAsk, onMinim
           </div>
         )}
       </div>
-
-      <form onSubmit={send} className="flex items-center gap-2 border-t p-3">
-        <label htmlFor="donanorma-input" className="sr-only">
-          Mensagem para a DonaNorma
-        </label>
-        <Input
-          id="donanorma-input"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Pergunte sobre CATMAT, ETP, TR..."
-          autoComplete="off"
-        />
-        <Button type="submit" size="icon" disabled={!input.trim() || typing} aria-label="Enviar mensagem">
-          <Send aria-hidden="true" className="size-4" />
-        </Button>
-      </form>
     </section>
   );
 }

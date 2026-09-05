@@ -11,9 +11,8 @@ import {
   type PendingAsk,
 } from "@/components/DonaNormaChat";
 import { PhaseNav } from "@/components/PhaseNav";
-import { NewPhaseDialog } from "@/components/NewPhaseDialog";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import { CUSTOM_TASK_OFFSET, FINAL_TASK_ID, TASKS, type CustomPhase } from "@/lib/checklist-data";
+import { FINAL_TASK_ID, PHASES, TASKS } from "@/lib/checklist-data";
 import { cn } from "@/lib/utils";
 
 
@@ -24,7 +23,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Acompanhe as 16 etapas do processo de compras públicas, da demanda à validação jurídica, com a assistente virtual DonaNorma.",
+          "Acompanhe as 16 etapas do processo de compras públicas, da demanda à validação jurídica, com a assistente virtual Dona Norma.",
       },
       { property: "og:title", content: "Check-list de Compras Públicas" },
       {
@@ -44,61 +43,37 @@ function Index() {
   const [attachments, setAttachments] = useLocalStorage<Record<number, string>>("cpc:anexos", {});
   const [finalStatus, setFinalStatus] = useLocalStorage<FinalStatus>("cpc:final", "pending");
   const [messages, setMessages] = useLocalStorage<ChatMessage[]>("cpc:chat", INITIAL_MESSAGES);
-  const [customPhases, setCustomPhases] = useLocalStorage<CustomPhase[]>("cpc:fases-extras", []);
-  const [openPhase, setOpenPhase] = useState<string>("phase-1");
-  const [activePhase, setActivePhase] = useState(1);
+  const [activeIndex, setActiveIndex] = useState(0);
   const [chatOpen, setChatOpen] = useState(false);
-  const [chatHidden, setChatHidden] = useState(false);
+  const [chatHidden, setChatHidden] = useState(true);
   const [pendingAsk, setPendingAsk] = useState<PendingAsk | null>(null);
-
-  const isCustom = (id: number) => id >= CUSTOM_TASK_OFFSET;
-
-  const toggleTask = (taskId: number) => {
-    setCompleted((prev) => {
-      if (prev.includes(taskId)) {
-        setFinalStatus("pending");
-        return prev.filter((id) => id < taskId || isCustom(id));
-      }
-      if (taskId !== 1 && !prev.includes(taskId - 1)) return prev;
-      return [...prev, taskId].sort((a, b) => a - b);
-    });
-  };
-
-  const toggleCustomTask = (taskId: number) => {
-    setCompleted((prev) =>
-      prev.includes(taskId)
-        ? prev.filter((id) => id !== taskId)
-        : [...prev, taskId].sort((a, b) => a - b),
-    );
-  };
 
   const attach = (taskId: number, fileName: string) => {
     setAttachments((prev) => ({ ...prev, [taskId]: fileName }));
+    setCompleted((prev) => {
+      if (prev.includes(taskId)) return prev;
+      const unlocked = taskId === 1 || prev.includes(taskId - 1);
+      if (!unlocked) return prev;
+      return [...prev, taskId].sort((a, b) => a - b);
+    });
     toast.success("Arquivo anexado", { description: fileName });
   };
 
-  const askDonaNorma = (question: string) => {
-    setPendingAsk({ key: Date.now(), text: question });
-    setChatHidden(false);
-    if (window.innerWidth < 1280) setChatOpen(true);
-  };
-
-  const addCustomPhase = (data: { name: string; taskTitle: string; fileLabel: string }) => {
-    const id = CUSTOM_TASK_OFFSET + Date.now() % 100000;
-    setCustomPhases((prev) => [...prev, { id, ...data }]);
-    setOpenPhase(`phase-${id}`);
-    toast.success("Nova etapa adicionada", { description: data.name });
-  };
-
-  const removeCustomPhase = (phaseId: number) => {
-    setCustomPhases((prev) => prev.filter((p) => p.id !== phaseId));
-    setCompleted((prev) => prev.filter((id) => id !== phaseId));
+  const removeAttachment = (taskId: number) => {
     setAttachments((prev) => {
       const next = { ...prev };
-      delete next[phaseId];
+      delete next[taskId];
       return next;
     });
-    toast("Etapa removida");
+    setCompleted((prev) => prev.filter((id) => id !== taskId));
+    setFinalStatus("pending");
+    toast("Arquivo removido");
+  };
+
+  const askDonaNorma = (question: string, reply?: string) => {
+    setPendingAsk({ key: Date.now(), text: question, ...(reply ? { reply } : {}) });
+    setChatHidden(false);
+    if (window.innerWidth < 1280) setChatOpen(true);
   };
 
   const approve = () => {
@@ -110,19 +85,25 @@ function Index() {
   };
 
   const returnWithError = () => {
-    setCompleted((prev) => prev.filter((id) => id < 15 || isCustom(id)));
+    setCompleted((prev) => prev.filter((id) => id < 15));
     setFinalStatus("returned");
     toast.error("Edital retornado com apontamentos", {
       description: "A etapa 15 foi reaberta para correção.",
     });
   };
 
-  const selectPhase = (phaseId: number) => {
-    setActivePhase(phaseId);
-    setOpenPhase(`phase-${phaseId}`);
-    if (typeof document !== "undefined") {
-      document.getElementById(`fase-${phaseId}`)?.scrollIntoView({ behavior: "smooth" });
-    }
+  const selectPhase = (index: number) => {
+    const reachable = PHASES.slice(0, index).every((p) => {
+      const ts = TASKS.filter((t) => t.phaseId === p.id);
+      return ts.every((t) => completed.includes(t.id));
+    });
+    if (!reachable) return;
+    setActiveIndex(index);
+  };
+
+  const nextPhase = () => {
+    setActiveIndex((i) => Math.min(i + 1, PHASES.length - 1));
+    scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const resetChat = () => setMessages(() => INITIAL_MESSAGES);
@@ -131,7 +112,7 @@ function Index() {
     <div className="flex min-h-screen bg-background text-foreground">
       <aside className="hidden w-72 shrink-0 bg-sidebar text-sidebar-foreground lg:block">
         <div className="sticky top-0 h-screen overflow-y-auto">
-          <PhaseNav completed={completed} activePhase={activePhase} onSelectPhase={selectPhase} />
+          <PhaseNav completed={completed} activeIndex={activeIndex} onSelectPhase={selectPhase} />
         </div>
       </aside>
 
@@ -140,27 +121,22 @@ function Index() {
           <div className="min-w-0">
             <p className="text-sm font-semibold">Compras Públicas</p>
             <p className="text-xs text-primary-foreground/75">
-              {completed.length} de {TASKS.length + customPhases.length} tarefas concluídas
+              {completed.length} de {TASKS.length} tarefas concluídas
             </p>
-          </div>
-          <div className="ml-auto">
-            <NewPhaseDialog onCreate={addCustomPhase} />
           </div>
         </div>
         <Checklist
           completed={completed}
           attachments={attachments}
           finalStatus={finalStatus}
-          openPhase={openPhase}
-          customPhases={customPhases}
-          onOpenPhase={setOpenPhase}
-          onToggle={toggleTask}
+          phase={PHASES[activeIndex]!}
+          phaseIndex={activeIndex}
+          onNextPhase={nextPhase}
           onAttach={attach}
+          onRemoveAttachment={removeAttachment}
           onAsk={askDonaNorma}
           onApprove={approve}
           onReturn={returnWithError}
-          onToggleCustom={toggleCustomTask}
-          onRemoveCustomPhase={removeCustomPhase}
         />
       </main>
 
@@ -211,14 +187,14 @@ function Index() {
           setChatHidden(false);
           setChatOpen(true);
         }}
-        aria-label="Abrir chat da DonaNorma"
+        aria-label="Abrir chat da Dona Norma"
         className={cn(
           "fixed bottom-5 right-5 z-40 h-12 rounded-full shadow-lg",
           !chatHidden && "xl:hidden",
         )}
       >
         <MessageSquare aria-hidden="true" className="size-5" />
-        DonaNorma
+        Dona Norma
       </Button>
     </div>
   );

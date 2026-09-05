@@ -5,11 +5,17 @@ import { cn } from "@/lib/utils";
 
 type Props = {
   completed: number[];
-  activePhase: number;
-  onSelectPhase: (phaseId: number) => void;
+  activeIndex: number;
+  onSelectPhase: (index: number) => void;
 };
 
-export function PhaseNav({ completed, activePhase, onSelectPhase }: Props) {
+export function PhaseNav({ completed, activeIndex, onSelectPhase }: Props) {
+  const isReachable = (index: number) =>
+    PHASES.slice(0, index).every((p) => {
+      const ts = TASKS.filter((t) => t.phaseId === p.id);
+      return ts.every((t) => completed.includes(t.id));
+    });
+
   return (
     <nav aria-label="Fases do processo" className="flex h-full flex-col gap-6 p-5">
       <div className="flex items-center gap-3">
@@ -23,21 +29,25 @@ export function PhaseNav({ completed, activePhase, onSelectPhase }: Props) {
       </div>
 
       <ul className="flex flex-col gap-2">
-        {PHASES.map((phase) => {
+        {PHASES.map((phase, index) => {
           const tasks = TASKS.filter((t) => t.phaseId === phase.id);
           const done = tasks.filter((t) => completed.includes(t.id)).length;
           const pct = Math.round((done / tasks.length) * 100);
-          const isActive = activePhase === phase.id;
+          const isActive = index === activeIndex;
+          const reachable = isReachable(index);
           return (
             <li key={phase.id}>
               <button
                 type="button"
-                onClick={() => onSelectPhase(phase.id)}
+                onClick={() => onSelectPhase(index)}
+                disabled={!reachable}
                 aria-current={isActive ? "step" : undefined}
+                aria-disabled={!reachable}
                 className={cn(
                   "w-full rounded-md border border-transparent px-3 py-3 text-left transition-colors",
                   "hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
                   isActive && "border-sidebar-border bg-sidebar-accent",
+                  !reachable && "cursor-not-allowed opacity-50",
                 )}
               >
                 <span className="flex items-center gap-2">

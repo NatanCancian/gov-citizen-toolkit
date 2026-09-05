@@ -38,12 +38,28 @@ export const TASKS: Task[] = [
 
 export const FINAL_TASK_ID = 16;
 
-/** Fase criada pelo próprio usuário, com um campo de arquivo definido por ele. */
-export type CustomPhase = {
-  id: number;
-  name: string;
-  taskTitle: string;
-  fileLabel: string;
-};
+export const DEFAULT_REPLY =
+  "Boa pergunta! Para esta etapa, informe o objeto da contratação, fundamentos legais e anexe o documento correspondente no campo indicado. Posso detalhar um passo específico quando quiser.";
 
-export const CUSTOM_TASK_OFFSET = 1000;
+/**
+ * Resposta padrão de cada botão "O que preencho aqui?" por id da tarefa.
+ * Custom phases usavam DEFAULT_REPLY.
+ */
+export const TASK_REPLIES: Record<number, string> = {
+  1: "Descreva aqui a unidade demandante, o objeto pretendido, a justificativa resumida da necessidade e a autorização do dirigente da autarquia para abertura do processo.",
+  2: "Registre a demanda no Cadastro de Intenções do Município com os dados da necessidade, a estimativa de quantidade e o período pretendido, conforme o modelo da Central de Compras.",
+  3: "Documente a análise da Central de Compras sobre a viabilidade da demanda, incluindo o despacho/parecer que aprove o prosseguimento do processo.",
+  4: "Consulte o catálogo eletrônico e registre se existe item padronizado (CATMAT) para o objeto, anexando o print da consulta e a referência do código, conforme a Portaria 107/2023.",
+  5: "Preencha o DFD com a justificativa da contratação, o detalhamento do objeto, a estimativa preliminar e o vínculo com a demanda registrada no sistema.",
+  6: "Identifique os riscos da contratação (probabilidade x impacto) e proponha medidas de mitigação com o responsável por cada um.",
+  7: "Estruture o ETP com a necessidade, os requisitos, as estimativas, o levantamento de mercado e a conclusão pela viabilidade do objeto.",
+  8: "Detalhe o TR com o objeto, especificações, quantidades, critérios de aceitação, obrigações das partes e sanções aplicáveis.",
+  9: "Indique o número da portaria que designa os fiscais da contratação e anexe o documento publicado em diário oficial.",
+  10: "Liste os fornecedores consultados e os preços levantados para compor o mapa comparativo e fundamentar a estimativa de preço.",
+  11: "Registre o responsável pela pesquisa de mercado, a metodologia adotada e as fontes consultadas para embasar a estimativa.",
+  12: "Anexe os orçamentos coletados junto aos fornecedores para fundamentar a formação do preço de referência.",
+  13: "Informe o número da nota de reserva de dotação orçamentária que garante os recursos para a despesa.",
+  14: "Elabore a minuta do edital com base no TR aprovado, conferindo cláusulas, condições de participação, prazos e itens obrigatórios.",
+  15: "Remeta o processo completo ao Departamento Jurídico com todos os documentos encadeados e registre o protocolo/envio.",
+  16: "Registre o parecer jurídico final: a aprovação do edital para publicação ou os apontamentos para correção e reenvio.",
+};
