@@ -78,6 +78,7 @@ function Index() {
 
   const askDonaNorma = (question: string) => {
     setPendingAsk({ key: Date.now(), text: question });
+    setChatHidden(false);
     if (window.innerWidth < 1280) setChatOpen(true);
   };
 
@@ -164,16 +165,19 @@ function Index() {
 
 
 
-      <aside className="hidden w-96 shrink-0 border-l xl:block">
-        <div className="sticky top-0 h-screen">
-          <DonaNormaChat
-            messages={messages}
-            onChange={setMessages}
-            onReset={resetChat}
-            pendingAsk={pendingAsk}
-          />
-        </div>
-      </aside>
+      {!chatHidden && (
+        <aside className="hidden w-96 shrink-0 border-l xl:block">
+          <div className="sticky top-0 h-screen">
+            <DonaNormaChat
+              messages={messages}
+              onChange={setMessages}
+              onReset={resetChat}
+              pendingAsk={pendingAsk}
+              onMinimize={() => setChatHidden(true)}
+            />
+          </div>
+        </aside>
+      )}
 
       {/* Chat retrátil em telas menores */}
       {chatOpen && (
@@ -202,9 +206,15 @@ function Index() {
 
       <Button
         type="button"
-        onClick={() => setChatOpen(true)}
+        onClick={() => {
+          setChatHidden(false);
+          setChatOpen(true);
+        }}
         aria-label="Abrir chat da DonaNorma"
-        className="fixed bottom-5 right-5 z-40 h-12 rounded-full shadow-lg xl:hidden"
+        className={cn(
+          "fixed bottom-5 right-5 z-40 h-12 rounded-full shadow-lg",
+          !chatHidden && "xl:hidden",
+        )}
       >
         <MessageSquare aria-hidden="true" className="size-5" />
         DonaNorma
