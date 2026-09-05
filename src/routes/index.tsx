@@ -14,6 +14,7 @@ import { PhaseNav } from "@/components/PhaseNav";
 import { NewPhaseDialog } from "@/components/NewPhaseDialog";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { CUSTOM_TASK_OFFSET, FINAL_TASK_ID, TASKS, type CustomPhase } from "@/lib/checklist-data";
+import { cn } from "@/lib/utils";
 
 
 export const Route = createFileRoute("/")({
@@ -44,9 +45,10 @@ function Index() {
   const [finalStatus, setFinalStatus] = useLocalStorage<FinalStatus>("cpc:final", "pending");
   const [messages, setMessages] = useLocalStorage<ChatMessage[]>("cpc:chat", INITIAL_MESSAGES);
   const [customPhases, setCustomPhases] = useLocalStorage<CustomPhase[]>("cpc:fases-extras", []);
-  const [openPhases, setOpenPhases] = useState<string[]>(["phase-1"]);
+  const [openPhase, setOpenPhase] = useState<string>("phase-1");
   const [activePhase, setActivePhase] = useState(1);
   const [chatOpen, setChatOpen] = useState(false);
+  const [chatHidden, setChatHidden] = useState(false);
   const [pendingAsk, setPendingAsk] = useState<PendingAsk | null>(null);
 
   const isCustom = (id: number) => id >= CUSTOM_TASK_OFFSET;
@@ -77,13 +79,14 @@ function Index() {
 
   const askDonaNorma = (question: string) => {
     setPendingAsk({ key: Date.now(), text: question });
+    setChatHidden(false);
     if (window.innerWidth < 1280) setChatOpen(true);
   };
 
   const addCustomPhase = (data: { name: string; taskTitle: string; fileLabel: string }) => {
     const id = CUSTOM_TASK_OFFSET + Date.now() % 100000;
     setCustomPhases((prev) => [...prev, { id, ...data }]);
-    setOpenPhases((prev) => [...prev, `phase-${id}`]);
+    setOpenPhase(`phase-${id}`);
     toast.success("Nova etapa adicionada", { description: data.name });
   };
 
@@ -116,9 +119,7 @@ function Index() {
 
   const selectPhase = (phaseId: number) => {
     setActivePhase(phaseId);
-    setOpenPhases((prev) =>
-      prev.includes(`phase-${phaseId}`) ? prev : [...prev, `phase-${phaseId}`],
-    );
+    setOpenPhase(`phase-${phaseId}`);
     if (typeof document !== "undefined") {
       document.getElementById(`fase-${phaseId}`)?.scrollIntoView({ behavior: "smooth" });
     }
@@ -150,9 +151,9 @@ function Index() {
           completed={completed}
           attachments={attachments}
           finalStatus={finalStatus}
-          openPhases={openPhases}
+          openPhase={openPhase}
           customPhases={customPhases}
-          onOpenPhases={setOpenPhases}
+          onOpenPhase={setOpenPhase}
           onToggle={toggleTask}
           onAttach={attach}
           onAsk={askDonaNorma}
@@ -165,16 +166,19 @@ function Index() {
 
 
 
-      <aside className="hidden w-96 shrink-0 border-l xl:block">
-        <div className="sticky top-0 h-screen">
-          <DonaNormaChat
-            messages={messages}
-            onChange={setMessages}
-            onReset={resetChat}
-            pendingAsk={pendingAsk}
-          />
-        </div>
-      </aside>
+      {!chatHidden && (
+        <aside className="hidden w-96 shrink-0 border-l xl:block">
+          <div className="sticky top-0 h-screen">
+            <DonaNormaChat
+              messages={messages}
+              onChange={setMessages}
+              onReset={resetChat}
+              pendingAsk={pendingAsk}
+              onMinimize={() => setChatHidden(true)}
+            />
+          </div>
+        </aside>
+      )}
 
       {/* Chat retrátil em telas menores */}
       {chatOpen && (
@@ -203,9 +207,15 @@ function Index() {
 
       <Button
         type="button"
-        onClick={() => setChatOpen(true)}
+        onClick={() => {
+          setChatHidden(false);
+          setChatOpen(true);
+        }}
         aria-label="Abrir chat da DonaNorma"
-        className="fixed bottom-5 right-5 z-40 h-12 rounded-full shadow-lg xl:hidden"
+        className={cn(
+          "fixed bottom-5 right-5 z-40 h-12 rounded-full shadow-lg",
+          !chatHidden && "xl:hidden",
+        )}
       >
         <MessageSquare aria-hidden="true" className="size-5" />
         DonaNorma

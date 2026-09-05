@@ -27,9 +27,9 @@ type Props = {
   completed: number[];
   attachments: Record<number, string>;
   finalStatus: FinalStatus;
-  openPhases: string[];
+  openPhase: string;
   customPhases: CustomPhase[];
-  onOpenPhases: (v: string[]) => void;
+  onOpenPhase: (v: string) => void;
   onToggle: (taskId: number) => void;
   onAttach: (taskId: number, fileName: string) => void;
   onAsk: (question: string) => void;
@@ -43,9 +43,9 @@ export function Checklist({
   completed,
   attachments,
   finalStatus,
-  openPhases,
+  openPhase,
   customPhases,
-  onOpenPhases,
+  onOpenPhase,
   onToggle,
   onAttach,
   onAsk,
@@ -130,9 +130,10 @@ export function Checklist({
       )}
 
       <Accordion
-        type="multiple"
-        value={openPhases}
-        onValueChange={onOpenPhases}
+        type="single"
+        collapsible
+        value={openPhase}
+        onValueChange={(v) => v && onOpenPhase(v)}
         className="space-y-4"
       >
         {PHASES.map((phase) => {
