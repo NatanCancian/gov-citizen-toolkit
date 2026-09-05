@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle, FileText, Lock, Paperclip, Upload } from "lucide-react";
+import { AlertCircle, CheckCircle, FileText, Lock, Paperclip, Trash2, Upload } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -8,7 +8,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { FINAL_TASK_ID, PHASES, TASKS } from "@/lib/checklist-data";
+import { FINAL_TASK_ID, PHASES, TASKS, type CustomPhase } from "@/lib/checklist-data";
 import { cn } from "@/lib/utils";
 
 export type FinalStatus = "pending" | "approved" | "returned";
@@ -18,11 +18,14 @@ type Props = {
   attachments: Record<number, string>;
   finalStatus: FinalStatus;
   openPhases: string[];
+  customPhases: CustomPhase[];
   onOpenPhases: (v: string[]) => void;
   onToggle: (taskId: number) => void;
-  onAttach: (taskId: number) => void;
+  onAttach: (taskId: number, label?: string) => void;
   onApprove: () => void;
   onReturn: () => void;
+  onToggleCustom: (taskId: number) => void;
+  onRemoveCustomPhase: (phaseId: number) => void;
 };
 
 export function Checklist({
@@ -30,17 +33,21 @@ export function Checklist({
   attachments,
   finalStatus,
   openPhases,
+  customPhases,
   onOpenPhases,
   onToggle,
   onAttach,
   onApprove,
   onReturn,
+  onToggleCustom,
+  onRemoveCustomPhase,
 }: Props) {
-  const total = TASKS.length;
+  const total = TASKS.length + customPhases.length;
   const done = completed.length;
-  const pct = Math.round((done / total) * 100);
+  const pct = total === 0 ? 0 : Math.round((done / total) * 100);
   const isDone = (id: number) => completed.includes(id);
   const isUnlocked = (id: number) => id === 1 || isDone(id - 1);
+
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 p-4 sm:p-6">
