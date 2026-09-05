@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Bot, Send, Trash2 } from "lucide-react";
+import { Bot, Minus, Send, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -29,9 +29,10 @@ type Props = {
   onChange: (updater: (prev: ChatMessage[]) => ChatMessage[]) => void;
   onReset: () => void;
   pendingAsk?: PendingAsk | null;
+  onMinimize?: () => void;
 };
 
-export function DonaNormaChat({ messages, onChange, onReset, pendingAsk }: Props) {
+export function DonaNormaChat({ messages, onChange, onReset, pendingAsk, onMinimize }: Props) {
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
@@ -84,16 +85,30 @@ export function DonaNormaChat({ messages, onChange, onReset, pendingAsk }: Props
             Especialista em licitações e contratos
           </p>
         </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={onReset}
-          aria-label="Limpar conversa"
-          className="ml-auto text-primary-foreground hover:bg-primary-foreground/15 hover:text-primary-foreground"
-        >
-          <Trash2 aria-hidden="true" className="size-4" />
-        </Button>
+        <div className="ml-auto flex items-center gap-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={onReset}
+            aria-label="Limpar conversa"
+            className="text-primary-foreground hover:bg-primary-foreground/15 hover:text-primary-foreground"
+          >
+            <Trash2 aria-hidden="true" className="size-4" />
+          </Button>
+          {onMinimize && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={onMinimize}
+              aria-label="Ocultar DonaNorma"
+              className="text-primary-foreground hover:bg-primary-foreground/15 hover:text-primary-foreground"
+            >
+              <Minus aria-hidden="true" className="size-4" />
+            </Button>
+          )}
+        </div>
       </header>
 
       <div
