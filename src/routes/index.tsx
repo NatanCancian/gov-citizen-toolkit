@@ -14,6 +14,7 @@ import { PhaseNav } from "@/components/PhaseNav";
 import { NewPhaseDialog } from "@/components/NewPhaseDialog";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { CUSTOM_TASK_OFFSET, FINAL_TASK_ID, TASKS, type CustomPhase } from "@/lib/checklist-data";
+import { cn } from "@/lib/utils";
 
 
 export const Route = createFileRoute("/")({
