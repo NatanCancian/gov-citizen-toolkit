@@ -1,4 +1,14 @@
-import { AlertCircle, CheckCircle, FileText, Lock, Paperclip, Trash2, Upload } from "lucide-react";
+import { useRef, useState } from "react";
+import {
+  AlertCircle,
+  CheckCircle,
+  FileText,
+  HelpCircle,
+  Lock,
+  Paperclip,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -21,7 +31,8 @@ type Props = {
   customPhases: CustomPhase[];
   onOpenPhases: (v: string[]) => void;
   onToggle: (taskId: number) => void;
-  onAttach: (taskId: number, label?: string) => void;
+  onAttach: (taskId: number, fileName: string) => void;
+  onAsk: (question: string) => void;
   onApprove: () => void;
   onReturn: () => void;
   onToggleCustom: (taskId: number) => void;
@@ -37,6 +48,7 @@ export function Checklist({
   onOpenPhases,
   onToggle,
   onAttach,
+  onAsk,
   onApprove,
   onReturn,
   onToggleCustom,
@@ -48,9 +60,31 @@ export function Checklist({
   const isDone = (id: number) => completed.includes(id);
   const isUnlocked = (id: number) => id === 1 || isDone(id - 1);
 
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [targetId, setTargetId] = useState<number | null>(null);
+
+  const pickFile = (taskId: number) => {
+    setTargetId(taskId);
+    fileRef.current?.click();
+  };
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && targetId !== null) onAttach(targetId, file.name);
+    e.target.value = "";
+  };
+
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 p-4 sm:p-6">
+      <input
+        ref={fileRef}
+        type="file"
+        className="hidden"
+        onChange={handleFile}
+        aria-hidden="true"
+        tabIndex={-1}
+      />
       <header className="rounded-lg border bg-card p-5 shadow-sm">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
@@ -191,6 +225,23 @@ export function Checklist({
                               </p>
                             )}
 
+                            <div className="mt-2">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  onAsk(
+                                    `Sobre a etapa ${task.id} — ${task.title}: o que preencho aqui?`,
+                                  )
+                                }
+                                className="h-7 gap-1 px-2 text-xs text-primary hover:bg-primary/10"
+                              >
+                                <HelpCircle aria-hidden="true" className="size-3.5" />
+                                O que preencho aqui?
+                              </Button>
+                            </div>
+
                             {isFinal && (
                               <div className="mt-3 flex flex-wrap gap-2">
                                 <Button
@@ -219,7 +270,7 @@ export function Checklist({
                             type="button"
                             variant="outline"
                             size="sm"
-                            onClick={() => onAttach(task.id)}
+                            onClick={() => pickFile(task.id)}
                             aria-label={`Anexar arquivo à tarefa ${task.id}`}
                             className="shrink-0"
                           >
@@ -299,12 +350,24 @@ export function Checklist({
                         {attachments[phase.id]}
                       </p>
                     )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        onAsk(`Sobre a etapa "${phase.taskTitle}": o que preencho aqui?`)
+                      }
+                      className="mt-2 h-7 gap-1 px-2 text-xs text-primary hover:bg-primary/10"
+                    >
+                      <HelpCircle aria-hidden="true" className="size-3.5" />
+                      O que preencho aqui?
+                    </Button>
                   </div>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => onAttach(phase.id, phase.fileLabel)}
+                    onClick={() => pickFile(phase.id)}
                     aria-label={`Anexar ${phase.fileLabel}`}
                     className="shrink-0"
                   >
