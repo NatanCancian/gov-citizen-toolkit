@@ -4,7 +4,12 @@ import { MessageSquare, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checklist, type FinalStatus } from "@/components/Checklist";
-import { DonaNormaChat, INITIAL_MESSAGES, type ChatMessage } from "@/components/DonaNormaChat";
+import {
+  DonaNormaChat,
+  INITIAL_MESSAGES,
+  type ChatMessage,
+  type PendingAsk,
+} from "@/components/DonaNormaChat";
 import { PhaseNav } from "@/components/PhaseNav";
 import { NewPhaseDialog } from "@/components/NewPhaseDialog";
 import { useLocalStorage } from "@/hooks/use-local-storage";
@@ -42,6 +47,7 @@ function Index() {
   const [openPhases, setOpenPhases] = useState<string[]>(["phase-1"]);
   const [activePhase, setActivePhase] = useState(1);
   const [chatOpen, setChatOpen] = useState(false);
+  const [pendingAsk, setPendingAsk] = useState<PendingAsk | null>(null);
 
   const isCustom = (id: number) => id >= CUSTOM_TASK_OFFSET;
 
@@ -64,12 +70,14 @@ function Index() {
     );
   };
 
-  const attach = (taskId: number, label?: string) => {
-    const name = label
-      ? `${label.toLowerCase().replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "")}.pdf`
-      : `documento-etapa-${taskId}.pdf`;
-    setAttachments((prev) => ({ ...prev, [taskId]: name }));
-    toast.success("Arquivo anexado (simulação)", { description: name });
+  const attach = (taskId: number, fileName: string) => {
+    setAttachments((prev) => ({ ...prev, [taskId]: fileName }));
+    toast.success("Arquivo anexado", { description: fileName });
+  };
+
+  const askDonaNorma = (question: string) => {
+    setPendingAsk({ key: Date.now(), text: question });
+    if (window.innerWidth < 1280) setChatOpen(true);
   };
 
   const addCustomPhase = (data: { name: string; taskTitle: string; fileLabel: string }) => {
@@ -147,6 +155,7 @@ function Index() {
           onOpenPhases={setOpenPhases}
           onToggle={toggleTask}
           onAttach={attach}
+          onAsk={askDonaNorma}
           onApprove={approve}
           onReturn={returnWithError}
           onToggleCustom={toggleCustomTask}
@@ -158,7 +167,12 @@ function Index() {
 
       <aside className="hidden w-96 shrink-0 border-l xl:block">
         <div className="sticky top-0 h-screen">
-          <DonaNormaChat messages={messages} onChange={setMessages} onReset={resetChat} />
+          <DonaNormaChat
+            messages={messages}
+            onChange={setMessages}
+            onReset={resetChat}
+            pendingAsk={pendingAsk}
+          />
         </div>
       </aside>
 
@@ -177,7 +191,12 @@ function Index() {
               </Button>
             </div>
             <div className="min-h-0 flex-1">
-              <DonaNormaChat messages={messages} onChange={setMessages} onReset={resetChat} />
+              <DonaNormaChat
+            messages={messages}
+            onChange={setMessages}
+            onReset={resetChat}
+            pendingAsk={pendingAsk}
+          />
             </div>
           </div>
         </div>
