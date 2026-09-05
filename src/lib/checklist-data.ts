@@ -37,3 +37,13 @@ export const TASKS: Task[] = [
 ];
 
 export const FINAL_TASK_ID = 16;
+
+/** Fase criada pelo próprio usuário, com um campo de arquivo definido por ele. */
+export type CustomPhase = {
+  id: number;
+  name: string;
+  taskTitle: string;
+  fileLabel: string;
+};
+
+export const CUSTOM_TASK_OFFSET = 1000;

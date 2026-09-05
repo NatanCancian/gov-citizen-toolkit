@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle, FileText, Lock, Paperclip, Upload } from "lucide-react";
+import { AlertCircle, CheckCircle, FileText, Lock, Paperclip, Trash2, Upload } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -8,7 +8,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { FINAL_TASK_ID, PHASES, TASKS } from "@/lib/checklist-data";
+import { FINAL_TASK_ID, PHASES, TASKS, type CustomPhase } from "@/lib/checklist-data";
 import { cn } from "@/lib/utils";
 
 export type FinalStatus = "pending" | "approved" | "returned";
@@ -18,11 +18,14 @@ type Props = {
   attachments: Record<number, string>;
   finalStatus: FinalStatus;
   openPhases: string[];
+  customPhases: CustomPhase[];
   onOpenPhases: (v: string[]) => void;
   onToggle: (taskId: number) => void;
-  onAttach: (taskId: number) => void;
+  onAttach: (taskId: number, label?: string) => void;
   onApprove: () => void;
   onReturn: () => void;
+  onToggleCustom: (taskId: number) => void;
+  onRemoveCustomPhase: (phaseId: number) => void;
 };
 
 export function Checklist({
@@ -30,17 +33,21 @@ export function Checklist({
   attachments,
   finalStatus,
   openPhases,
+  customPhases,
   onOpenPhases,
   onToggle,
   onAttach,
   onApprove,
   onReturn,
+  onToggleCustom,
+  onRemoveCustomPhase,
 }: Props) {
-  const total = TASKS.length;
+  const total = TASKS.length + customPhases.length;
   const done = completed.length;
-  const pct = Math.round((done / total) * 100);
+  const pct = total === 0 ? 0 : Math.round((done / total) * 100);
   const isDone = (id: number) => completed.includes(id);
   const isUnlocked = (id: number) => id === 1 || isDone(id - 1);
+
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 p-4 sm:p-6">
@@ -228,7 +235,99 @@ export function Checklist({
             </AccordionItem>
           );
         })}
+
+        {customPhases.map((phase) => {
+          const done_ = isDone(phase.id);
+          return (
+            <AccordionItem
+              key={phase.id}
+              value={`phase-${phase.id}`}
+              id={`fase-${phase.id}`}
+              className="rounded-lg border border-dashed border-primary/40 bg-card px-4 shadow-sm"
+            >
+              <AccordionTrigger className="hover:no-underline">
+                <span className="flex flex-1 items-center gap-3 text-left">
+                  <FileText aria-hidden="true" className="size-4 shrink-0 text-primary" />
+                  <span>
+                    <span className="block text-sm font-semibold text-foreground">
+                      Fase personalizada — {phase.name}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {done_ ? "1 de 1 concluída" : "0 de 1 concluída"}
+                    </span>
+                  </span>
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="pb-4">
+                <div
+                  className={cn(
+                    "flex items-start gap-3 rounded-md border p-3",
+                    done_ ? "border-emerald-200 bg-emerald-50/60" : "bg-background",
+                  )}
+                >
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={done_}
+                    aria-label={`Etapa personalizada: ${phase.taskTitle}`}
+                    onClick={() => onToggleCustom(phase.id)}
+                    className={cn(
+                      "mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                      done_
+                        ? "border-emerald-600 bg-emerald-600 text-white"
+                        : "border-muted-foreground/40 bg-background",
+                    )}
+                  >
+                    {done_ && <CheckCircle aria-hidden="true" className="size-4" />}
+                  </button>
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className={cn(
+                        "text-sm font-medium text-foreground",
+                        done_ && "line-through decoration-emerald-700/50",
+                      )}
+                    >
+                      {phase.taskTitle}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Campo de arquivo: {phase.fileLabel}
+                    </p>
+                    {attachments[phase.id] && (
+                      <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                        <Upload aria-hidden="true" className="size-3" />
+                        {attachments[phase.id]}
+                      </p>
+                    )}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onAttach(phase.id, phase.fileLabel)}
+                    aria-label={`Anexar ${phase.fileLabel}`}
+                    className="shrink-0"
+                  >
+                    <Paperclip aria-hidden="true" className="size-4" />
+                    <span className="sr-only sm:not-sr-only">{phase.fileLabel}</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onRemoveCustomPhase(phase.id)}
+                    aria-label={`Excluir fase ${phase.name}`}
+                    className="shrink-0 text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 aria-hidden="true" className="size-4" />
+                  </Button>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          );
+        })}
       </Accordion>
+
     </div>
   );
 }
