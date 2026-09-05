@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Checklist, type FinalStatus } from "@/components/Checklist";
 import { DonaNormaChat, INITIAL_MESSAGES, type ChatMessage } from "@/components/DonaNormaChat";
 import { PhaseNav } from "@/components/PhaseNav";
+import { NewPhaseDialog } from "@/components/NewPhaseDialog";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import { FINAL_TASK_ID, TASKS } from "@/lib/checklist-data";
+import { CUSTOM_TASK_OFFSET, FINAL_TASK_ID, TASKS, type CustomPhase } from "@/lib/checklist-data";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
