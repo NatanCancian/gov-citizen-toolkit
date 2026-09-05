@@ -36,25 +36,56 @@ function Index() {
   const [attachments, setAttachments] = useLocalStorage<Record<number, string>>("cpc:anexos", {});
   const [finalStatus, setFinalStatus] = useLocalStorage<FinalStatus>("cpc:final", "pending");
   const [messages, setMessages] = useLocalStorage<ChatMessage[]>("cpc:chat", INITIAL_MESSAGES);
+  const [customPhases, setCustomPhases] = useLocalStorage<CustomPhase[]>("cpc:fases-extras", []);
   const [openPhases, setOpenPhases] = useState<string[]>(["phase-1"]);
   const [activePhase, setActivePhase] = useState(1);
   const [chatOpen, setChatOpen] = useState(false);
+
+  const isCustom = (id: number) => id >= CUSTOM_TASK_OFFSET;
 
   const toggleTask = (taskId: number) => {
     setCompleted((prev) => {
       if (prev.includes(taskId)) {
         setFinalStatus("pending");
-        return prev.filter((id) => id < taskId);
+        return prev.filter((id) => id < taskId || isCustom(id));
       }
       if (taskId !== 1 && !prev.includes(taskId - 1)) return prev;
       return [...prev, taskId].sort((a, b) => a - b);
     });
   };
 
-  const attach = (taskId: number) => {
-    const name = `documento-etapa-${taskId}.pdf`;
+  const toggleCustomTask = (taskId: number) => {
+    setCompleted((prev) =>
+      prev.includes(taskId)
+        ? prev.filter((id) => id !== taskId)
+        : [...prev, taskId].sort((a, b) => a - b),
+    );
+  };
+
+  const attach = (taskId: number, label?: string) => {
+    const name = label
+      ? `${label.toLowerCase().replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "")}.pdf`
+      : `documento-etapa-${taskId}.pdf`;
     setAttachments((prev) => ({ ...prev, [taskId]: name }));
     toast.success("Arquivo anexado (simulação)", { description: name });
+  };
+
+  const addCustomPhase = (data: { name: string; taskTitle: string; fileLabel: string }) => {
+    const id = CUSTOM_TASK_OFFSET + Date.now() % 100000;
+    setCustomPhases((prev) => [...prev, { id, ...data }]);
+    setOpenPhases((prev) => [...prev, `phase-${id}`]);
+    toast.success("Nova etapa adicionada", { description: data.name });
+  };
+
+  const removeCustomPhase = (phaseId: number) => {
+    setCustomPhases((prev) => prev.filter((p) => p.id !== phaseId));
+    setCompleted((prev) => prev.filter((id) => id !== phaseId));
+    setAttachments((prev) => {
+      const next = { ...prev };
+      delete next[phaseId];
+      return next;
+    });
+    toast("Etapa removida");
   };
 
   const approve = () => {
@@ -66,7 +97,7 @@ function Index() {
   };
 
   const returnWithError = () => {
-    setCompleted((prev) => prev.filter((id) => id < 15));
+    setCompleted((prev) => prev.filter((id) => id < 15 || isCustom(id)));
     setFinalStatus("returned");
     toast.error("Edital retornado com apontamentos", {
       description: "A etapa 15 foi reaberta para correção.",
@@ -94,24 +125,34 @@ function Index() {
       </aside>
 
       <main className="min-w-0 flex-1">
-        <div className="border-b bg-primary px-4 py-3 text-primary-foreground lg:hidden">
-          <p className="text-sm font-semibold">Compras Públicas</p>
-          <p className="text-xs text-primary-foreground/75">
-            {completed.length} de {TASKS.length} tarefas concluídas
-          </p>
+        <div className="sticky top-0 z-30 flex flex-wrap items-center gap-3 border-b bg-primary px-4 py-3 text-primary-foreground">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold">Compras Públicas</p>
+            <p className="text-xs text-primary-foreground/75">
+              {completed.length} de {TASKS.length + customPhases.length} tarefas concluídas
+            </p>
+          </div>
+          <div className="ml-auto">
+            <NewPhaseDialog onCreate={addCustomPhase} />
+          </div>
         </div>
         <Checklist
           completed={completed}
           attachments={attachments}
           finalStatus={finalStatus}
           openPhases={openPhases}
+          customPhases={customPhases}
           onOpenPhases={setOpenPhases}
           onToggle={toggleTask}
           onAttach={attach}
           onApprove={approve}
           onReturn={returnWithError}
+          onToggleCustom={toggleCustomTask}
+          onRemoveCustomPhase={removeCustomPhase}
         />
       </main>
+
+
 
       <aside className="hidden w-96 shrink-0 border-l xl:block">
         <div className="sticky top-0 h-screen">
